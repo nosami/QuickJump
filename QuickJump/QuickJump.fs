@@ -1,4 +1,4 @@
-﻿namespace QuickJumpN
+﻿namespace QuickJump
 
 open System
 open System.Collections.Generic
@@ -92,7 +92,9 @@ type QuickJump() as x =
         removeHints()
         let editor = getEditorData()
         let topVisibleLine = ((editor.VAdjustment.Value / editor.LineHeight) |> int) + 1
-        let bottomVisibleLine = topVisibleLine + ((editor.VAdjustment.PageSize / editor.LineHeight) |> int)
+        let bottomVisibleLine =
+            Math.Min(editor.LineCount - 1,
+                topVisibleLine + ((editor.VAdjustment.PageSize / editor.LineHeight) |> int))
 
         [topVisibleLine..bottomVisibleLine]
         |> List.ofSeq

@@ -7,7 +7,7 @@ open Mono.Addins.Description
 [<assembly: Addin(
     "QuickJump",
     Namespace = "QuickJump",
-    Version = "1.0"
+    Version = "1.0.0.1"
 )>]
 
 [<assembly: AddinName("QuickJump")>]

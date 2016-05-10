@@ -3,6 +3,6 @@
   <Runtime>
   </Runtime>
   <Extension path = "/MonoDevelop/Ide/TextEditorExtensions">
-    <Class fileExtensions = ".fs,.fsi,.fsx,.fsscript" class = "QuickJumpN.QuickJump" />	
+    <Class class = "QuickJump.QuickJump" />	
   </Extension>
 </ExtensionModel>
