@@ -1,0 +1,26 @@
+#User-specific files
+*.suo
+*.user
+*.sln.docstates
+*.userprefs
+
+# Build results
+
+[Dd]ebug/
+[Rr]elease/
+x64/
+build/
+[Bb]in/
+[Oo]bj/
+#
+**/packages/*
+
+# Remainings from resolvings conflicts in Source Control
+*.orig
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Mac desktop service store files
+.DS_Store
