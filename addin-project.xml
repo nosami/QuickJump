@@ -1,0 +1,7 @@
+<AddinProject appVersion="6.0">
+    <Project platforms="Win32 Mac Linux">
+        <AddinFile>QuickJump/bin/Debug/QuickJump.dll</AddinFile>
+        <BuildFile>QuickJump.sln</BuildFile>
+        <BuildConfiguration>Debug</BuildConfiguration>
+    </Project>
+</AddinProject>
