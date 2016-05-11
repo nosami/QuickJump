@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Text.RegularExpressions
 open MonoDevelop
 open MonoDevelop.Components
+open MonoDevelop.Components.Commands
 open MonoDevelop.Core
 open MonoDevelop.Core.Text
 open MonoDevelop.Ide.Editor
@@ -102,12 +103,12 @@ type QuickJump() as x =
         |> Seq.sort
         |> Seq.zip hints
         |> Seq.iter addMarker
-    
+
+    [<CommandHandler("QuickJump.RunQuickJump")>]
+    member x.RunQuickJump() = state <- WaitingForInput
+
     override x.KeyPress (descriptor:KeyDescriptor) =
         match descriptor.ModifierKeys, descriptor.KeyChar, state with
-        | ModifierKeys.Command, 'j', WaitingForTrigger -> 
-            state <- WaitingForInput
-            false
         | ModifierKeys.None, c, WaitingForInput ->
             state <- Input c
             addHints()

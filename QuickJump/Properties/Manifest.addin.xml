@@ -3,6 +3,16 @@
   <Runtime>
   </Runtime>
   <Extension path = "/MonoDevelop/Ide/TextEditorExtensions">
-    <Class class = "QuickJump.QuickJump" />	
+    <Class class = "QuickJump.QuickJump" />
+  </Extension>
+  <Extension path = "/MonoDevelop/Ide/Commands">
+	<Category _name = "QuickJump" id="QuickJump">
+	<Command id="QuickJump.RunQuickJump"
+	         _label = "QuickJump"
+	         _description="Launch QuickJump"
+	         shortcut="Control|Alt|J"
+	         macShortcut="Meta|J"
+	         defaultHandler="QuickJump.QuickJump.RunQuickJump" />
+	</Category>
   </Extension>
 </ExtensionModel>
