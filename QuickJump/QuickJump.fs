@@ -115,13 +115,10 @@ type QuickJump() as x =
         | ModifierKeys.None, c, Input _s ->
             if markers.ContainsKey(c) then
                 x.Editor.CaretOffset <- markers.[c].Offset
-                removeHints()
-                state <- WaitingForTrigger
-                false
-            else
-                removeHints()
-                state <- WaitingForTrigger
-                false
+
+            removeHints()
+            state <- WaitingForTrigger
+            false
         | _, _, _ ->
             removeHints()
             state <- WaitingForTrigger
