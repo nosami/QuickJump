@@ -13,7 +13,8 @@ open Mono.TextEditor
 
 type HintMarker(hintChar:char, matchChar:string, offset) =
     inherit TextSegmentMarker(offset, 1)
-    let contextChanged = DelegateEvent<_>()
+
+    let dummyEvent = DelegateEvent<_>()
     let tag = obj()
 
     override x.Draw (editor, g, metrics, _startOffset, _endOffset) =
@@ -45,9 +46,9 @@ type HintMarker(hintChar:char, matchChar:string, offset) =
         member x.Length = 1
         member x.EndOffset = offset + 1
         [<CLIEvent>]
-        member x.MousePressed = contextChanged.Publish
+        member x.MousePressed = dummyEvent.Publish
         [<CLIEvent>]
-        member x.MouseHover = contextChanged.Publish
+        member x.MouseHover = dummyEvent.Publish
 
 type QuickJumpState =
     | WaitingForTrigger
@@ -62,15 +63,6 @@ type QuickJump() as x =
     let getEditorData() =
         x.Editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
 
-    let addMarker (hint:char, offset) =
-        match state with
-        | Input c ->
-            let marker = HintMarker(hint, c |> string, offset)
-            let doc = getEditorData().Document
-            doc.AddMarker marker
-            markers.Add(hint, marker)
-        | _ -> ()
-
     let lineMatches (lineNumber) =
         let line = x.Editor.GetLine lineNumber
         match state with
@@ -81,6 +73,15 @@ type QuickJump() as x =
             |> Seq.cast
             |> Seq.map (fun (found:Match) -> line.Offset + found.Index)
         | _ -> Seq.empty
+
+    let addMarker (hint:char, offset) =
+        match state with
+        | Input c ->
+            let marker = HintMarker(hint, c |> string, offset)
+            let doc = getEditorData().Document
+            doc.AddMarker marker
+            markers.Add(hint, marker)
+        | _ -> ()
 
     let removeHints() =
         markers |> Seq.iter(fun kv -> x.Editor.RemoveMarker kv.Value |> ignore)
@@ -97,7 +98,6 @@ type QuickJump() as x =
                 topVisibleLine + ((editor.VAdjustment.PageSize / editor.LineHeight) |> int))
 
         [topVisibleLine..bottomVisibleLine]
-        |> List.ofSeq
         |> Seq.collect lineMatches
         |> Seq.sort
         |> Seq.zip hints
