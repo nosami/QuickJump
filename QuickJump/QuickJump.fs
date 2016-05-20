@@ -8,15 +8,18 @@ open MonoDevelop.Components
 open MonoDevelop.Components.Commands
 open MonoDevelop.Core
 open MonoDevelop.Core.Text
+open MonoDevelop.Ide
 open MonoDevelop.Ide.Editor
 open MonoDevelop.Ide.Editor.Extension
 open Mono.TextEditor
 
-type HintMarker(hintChar:char, matchChar:string, offset) =
+type HintMarker(editor, hintChar:char, matchChar:string, offset) =
     inherit TextSegmentMarker(offset, 1)
 
     let dummyEvent = DelegateEvent<_>()
     let tag = obj()
+
+    member x.Editor = editor
 
     override x.Draw (editor, g, metrics, _startOffset, _endOffset) =
         let line = editor.GetLineByOffset offset
@@ -56,53 +59,67 @@ type QuickJumpState =
     | WaitingForInput
     | Input of cc:char
 
-type QuickJump() as x =
+type QuickJump() =
     inherit TextEditorExtension()
     let mutable state: QuickJumpState = WaitingForTrigger
     let mutable markers = Dictionary<_,_>()
+    let visibleEditors() =
+        IdeApp.Workbench.Documents
+        |> Seq.filter (fun doc -> match doc.Window with
+                                  | :? Gtk.Widget as w -> w.HasScreen
+                                  | _ -> false )
+        |> Seq.map (fun doc -> doc.Editor)
 
-    let getEditorData() =
-        x.Editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
+    let getEditorData (editor:TextEditor) =
+        editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
 
-    let lineMatches (lineNumber) =
-        let line = x.Editor.GetLine lineNumber
-        match state with
-        | Input c ->
-            let lineText = x.Editor.GetTextBetween(line.Offset, line.EndOffset)
+    let lineMatches editor =
+        let editorData = getEditorData editor
+        let topVisibleLine = ((editorData.VAdjustment.Value / editorData.LineHeight) |> int) + 1
+        let bottomVisibleLine =
+            Math.Min(editorData.LineCount - 1,
+                topVisibleLine + ((editorData.VAdjustment.PageSize / editorData.LineHeight) |> int))
+
+        let matchesPerLine (lineNumber, c:char) =
+            let line = editor.GetLine lineNumber
+            let lineText = editor.GetTextBetween(line.Offset, line.EndOffset)
 
             Regex.Matches(lineText, @"\b" + (c |> string), RegexOptions.IgnoreCase)
             |> Seq.cast
-            |> Seq.map (fun (found:Match) -> line.Offset + found.Index)
-        | _ -> Seq.empty
+            |> Seq.map (fun (found:Match) -> editor, line.Offset + found.Index)
 
-    let addMarker (hint:char, offset) =
         match state with
         | Input c ->
-            let marker = HintMarker(hint, c |> string, offset)
-            let doc = getEditorData().Document
+            [topVisibleLine..bottomVisibleLine]
+            |> Seq.map (fun line -> line, c)
+            |> Seq.collect matchesPerLine
+        | _ -> Seq.empty
+
+    let addMarker (editor, hint:char, offset) =
+        match state with
+        | Input c ->
+            let marker = HintMarker(editor, hint, c |> string, offset)
+            let doc = getEditorData(editor).Document
             doc.AddMarker marker
             markers.Add(hint, marker)
         | _ -> ()
 
     let removeHints() =
-        markers |> Seq.iter(fun kv -> x.Editor.RemoveMarker kv.Value |> ignore)
+        markers |> Seq.iter(fun kv -> kv.Value.Editor.RemoveMarker kv.Value |> ignore)
         markers.Clear()
 
     let hints = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     let addHints() =
         removeHints()
-        let editor = getEditorData()
-        let topVisibleLine = ((editor.VAdjustment.Value / editor.LineHeight) |> int) + 1
-        let bottomVisibleLine =
-            Math.Min(editor.LineCount - 1,
-                topVisibleLine + ((editor.VAdjustment.PageSize / editor.LineHeight) |> int))
 
-        [topVisibleLine..bottomVisibleLine]
-        |> Seq.collect lineMatches
-        |> Seq.sort
-        |> Seq.zip hints
-        |> Seq.iter addMarker
+        let hintPositions =
+            visibleEditors()
+            |> Seq.collect lineMatches
+            |> Seq.zip hints
+
+        for hint, (editor, offset) in hintPositions do
+            addMarker (editor, hint, offset)
 
     [<CommandHandler("QuickJump.RunQuickJump")>]
     member x.RunQuickJump() = state <- WaitingForInput
@@ -115,7 +132,13 @@ type QuickJump() as x =
             false
         | ModifierKeys.None, c, Input _s ->
             if markers.ContainsKey(c) then
-                x.Editor.CaretOffset <- markers.[c].Offset
+                let editor = markers.[c].Editor
+                let document = 
+                    IdeApp.Workbench.Documents 
+                    |> Seq.find(fun d -> d.FileName = editor.FileName)
+
+                document.Select()
+                editor.CaretOffset <- markers.[c].Offset
 
             removeHints()
             state <- WaitingForTrigger
