@@ -80,7 +80,7 @@ type QuickJump() =
             Math.Min(editorData.LineCount - 1,
                 topVisibleLine + ((editorData.VAdjustment.PageSize / editorData.LineHeight) |> int))
 
-        let matchesPerLine (lineNumber, c:char) =
+        let matchesPerLine lineNumber (c:char) =
             let line = editor.GetLine lineNumber
             let lineText = editor.GetTextBetween(line.Offset, line.EndOffset)
 
@@ -91,11 +91,10 @@ type QuickJump() =
         match state with
         | Input c ->
             [topVisibleLine..bottomVisibleLine]
-            |> Seq.map (fun line -> line, c)
-            |> Seq.collect matchesPerLine
+            |> Seq.collect (fun line -> matchesPerLine line c)
         | _ -> Seq.empty
 
-    let addMarker (editor, hint:char, offset) =
+    let addMarker editor (hint:char) offset =
         match state with
         | Input c ->
             let marker = HintMarker(editor, hint, c |> string, offset)
@@ -119,7 +118,7 @@ type QuickJump() =
             |> Seq.zip hints
 
         for hint, (editor, offset) in hintPositions do
-            addMarker (editor, hint, offset)
+            addMarker editor hint offset
 
     [<CommandHandler("QuickJump.RunQuickJump")>]
     member x.RunQuickJump() = state <- WaitingForInput
